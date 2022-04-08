@@ -14,7 +14,7 @@
 </p>
 
 **conda-setup** is a shell script to help you install Miniconda.
-It offers a number of configurable options, with reasonable defaults:
+It offers a number of configurable options:
 - Choose between global/local install
 - Set install location
 - Select base Python version
