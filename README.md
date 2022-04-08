@@ -28,7 +28,7 @@ Non-interactive mode is also available, and options can be set by running the sc
 ### Quickstart
 Interactive mode:
 ```
-curl -L theobrown.uk/setup/conda | bash
+bash <(curl -sL theobrown.uk/setup/conda)
 ```
 Non-interactive mode:
 ```
