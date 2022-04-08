@@ -51,7 +51,7 @@ The default options will:
 
 | Short flag | Long flag            | Description                                                                                   |
 |:-----------|:---------------------|:----------------------------------------------------------------------------------------------|
-| `-f`       | `--force`            | Force removal of any existing conda installation                                              |
+| `-f`       | `--force`            | If conda is already installed at the specified install location, overwrite it                 |
 | `-g`       | `--global`           | Install conda system-wide, equivalent to `conda-setup -d /opt`                                |
 | `-h`       | `--help`             | Print help message                                                                            |
 | `-q`       | `--quiet`            | Non-interactive mode - run without prompt and use defaults for any options not set with flags |
