@@ -45,8 +45,7 @@ The default options will:
 ### Detailed Usage
 ```
   conda-setup [-f | --force] [-g | --global] [-h | --help] [-q | --quiet] [-s | --silent]
-              [-d INSTALL_DIRECTORY | --install-dir INSTALL_DIRECTORY]
-              [-p PYTHON_VERSION | --python-version PYTHON_VERSION]
+              [-d DIR | --install-dir DIR] [-p VER | --python-version VER]
               [-B | --hide-base] [--no-auto-activate] [--no-init]
 ```
 
