@@ -2,15 +2,15 @@
 # Copyright (c) 2022 Theo Brown
 
 __namestring="\
-################################
-# theo-brown's conda installer #
-################################
+###############
+# conda-setup #
+###############
+Miniconda3 install & configuration script
+Copyright (c) 2022 Theo Brown (MIT License)
 "
 
 __docstring="\
 $__namestring
-Configurable Miniconda installation script
-
 Usage:
   conda-setup [-f | --force] [-g | --global] [-h | --help] [-q | --quiet] [-s | --silent]
               [-d INSTALL_DIRECTORY | --install-dir INSTALL_DIRECTORY]
@@ -18,7 +18,7 @@ Usage:
               [-B | --hide-base] [--no-auto-activate] [--no-init]
 
 Installation options:
-  -f | --force              Force removal of any existing conda installation
+  -f | --force              If \$INSTALL_DIRECTORY/miniconda exists, overwrite it
   -g | --global             Install conda system-wide, equivalent to 'conda-setup -d /opt'
   -h | --help               Print this help
   -q | --quiet              Non-interactive mode - run without prompt and use defaults for any options not set with flags
@@ -45,7 +45,7 @@ QUIET_MODE=false
 INSTALL_DIRECTORY="$HOME/.miniconda3"
 PYTHON_VERSION=""
 DISABLE_AUTO_ACTIVATE=false
-RUN_CONDA_INIT=false
+RUN_CONDA_INIT=true
 HIDE_BASE=false
 
 # Parse arguments by iterating through array
@@ -67,6 +67,17 @@ do
     shift
 done
 
+## MAIN PROGRAM ##
+echo "$__namestring"
+
+if command -v conda &> /dev/null
+then
+    echo "conda is already installed at $(which conda)."
+    echo "If you want to install conda using this script, you need to remove any existing conda installation."
+    exit 2
+fi
+
+## Set config ##
 function set_flag() {
     while true
     do
@@ -88,13 +99,11 @@ function set_arg() {
   esac
 }
 
-echo "$__namestring"
-
 if ! $QUIET_MODE
 then
     echo "# Configuration: (press enter to select default)"
-    set_flag "Force removal of any existing conda installation? [y/n] (default: n) " "FORCE_INSTALL"
     set_arg "Enter directory to install conda to (default: ~/.miniconda3): " "INSTALL_DIRECTORY"
+    set_flag "If an existing conda installation is found at $INSTALL_DIRECTORY, overwrite? [y/n] (default: n) " "FORCE_INSTALL"
     set_arg "Enter Python version to install (default: specified by miniconda): " "PYTHON_VERSION"
     set_flag "Hide '(base)' in shell prompt? [y/n] (default: n): " "HIDE_BASE"
     set_flag "Disable automatic activation of base environment? [y/n] (default: n): " "DISABLE_AUTO_ACTIVATE"
@@ -103,8 +112,8 @@ fi
 
 echo
 echo "Selected configuration:"
-echo "  FORCE_INSTALL=$FORCE_INSTALL"
 echo "  INSTALL_DIRECTORY=$INSTALL_DIRECTORY"
+echo "  FORCE_INSTALL=$FORCE_INSTALL"
 echo "  PYTHON_VERSION=${PYTHON_VERSION:-default}"
 echo "  HIDE_BASE=$HIDE_BASE"
 echo "  DISABLE_AUTO_ACTIVATE=$DISABLE_AUTO_ACTIVATE"
@@ -113,55 +122,22 @@ echo
 
 if ! $QUIET_MODE
 then
-  read -rp "Press enter to continue" input
+  read -rp "Press enter to continue, or Ctrl-C to cancel" input
 fi
 
-
-function delete_conda_install() {
-    # Check if location exists 
-    if [ -d "$1" ] 
-    then
-        # Check if write access to location
-        if [ -w "$1" ]
-        then
-            echo "Deleting conda install found at $1..."
-            rm -rf "$1"
-        else
-          echo "Error removing conda install at $1: permission denied."
-          exit 2
-        fi
-    fi
-    return 0
-}
-
-if $FORCE_INSTALL
+## Check config is valid ##
+# Check whether the specified INSTALL_DIRECTORY exists
+if [ -d "$INSTALL_DIRECTORY" ] && ! $FORCE_INSTALL
 then
-    # If conda is installed, find it and delete it
-    if command -v conda &> /dev/null
-    then
-        delete_conda_install "$(dirname "$(dirname "$(which conda)")")"
-    fi
-
-    # Overwrite install directory if it already exists
-    if [ -d "$INSTALL_DIRECTORY" ]
-    then
-        delete_conda_install "$INSTALL_DIRECTORY"
-    fi
-else
-    # Check whether the specified INSTALL_DIRECTORY exists
-    if [[ -d $INSTALL_DIRECTORY ]]
-    then
-        echo "Error installing to $INSTALL_DIRECTORY: directory already exists."
-        exit 3
-    fi
-    # Check whether we have permission to create the specified INSTALL_DIRECTORY
-    if [ ! -w "$(dirname "$INSTALL_DIRECTORY")" ]
-    then
-        echo "Error installing to $INSTALL_DIRECTORY: permission denied."
-        exit 2
-    fi
+    echo "Error installing to $INSTALL_DIRECTORY: directory already exists."
+    exit 3
 fi
-
+# Check whether we have permission to create the specified INSTALL_DIRECTORY
+if [ ! -w "$(dirname "$INSTALL_DIRECTORY")" ]
+then
+    echo "Error installing to $INSTALL_DIRECTORY: permission denied."
+    exit 2
+fi
 # Check if the Python version is valid (up to three numbers separated by .)
 if [ -n "$PYTHON_VERSION" ]
 then
@@ -173,7 +149,14 @@ then
   fi
 fi
 
-# Download and install
+## Optionally remove existing conda installation at $INSTALL_DIRECTORY ##
+if $FORCE_INSTALL
+then
+    echo "Overwriting conda install found at $INSTALL_DIRECTORY..."
+    rm -rf "$INSTALL_DIRECTORY"
+fi
+
+## Download and install ##
 echo "Downloading miniconda..."
 if [ -f /tmp/miniconda-installer.sh ]
 then
@@ -201,7 +184,7 @@ else
   conda install -y python
 fi
 
-# Optionally run 'conda init' as the active user
+## Optionally run 'conda init' as the active user ##
 if $RUN_CONDA_INIT
 then
     echo "Running 'conda init'..."
@@ -215,21 +198,22 @@ else
     echo "Skipping 'conda init'..."
 fi
 
-# Optionally disable auto activation of the base environment
+## Optionally disable auto activation of the base environment ##
 if $DISABLE_AUTO_ACTIVATE
 then
     echo "Disabling auto_activate_base..."
     echo "auto_activate_base: false" >> "$INSTALL_DIRECTORY"/.condarc
 fi
 
-# Optionally disable the '(base) ' prefix to PS1 prompt
+## Optionally disable the '(base) ' prefix to PS1 prompt ##
 if $HIDE_BASE
 then
-    echo "Hiding (base) in shell prompt..."
+    echo "Hiding '(base)' in shell prompt..."
     mkdir -p "$INSTALL_DIRECTORY"/etc/conda/activate.d
     echo 'PS1="$(echo "$PS1" | sed '\''s/(base) //'\'')"' > "$INSTALL_DIRECTORY"/etc/conda/activate.d/hide_base_ps1.sh
 fi
 
+## Exit ##
 echo
 echo "Successfully installed conda to $INSTALL_DIRECTORY"
 echo "You'll need to restart the shell to be able to activate environments"
