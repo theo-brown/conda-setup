@@ -3,7 +3,7 @@
 </h1>
 <p align="center">
      <em>
-          Miniconda3 install and configuration script
+          Miniconda3 installation and configuration script
      </em>
 </p>
 <p align="center">
