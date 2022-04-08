@@ -68,20 +68,23 @@ do
 done
 
 function set_flag() {
-    read -rp "$1" input
-    case $input in
-        y) "$2"=true; return 0;;
-        n) "$2"=false; return 0;;
-        '') ;; # Use default value
-        *) echo "Please enter y or n."; return 1;;
-    esac
+    while true
+    do
+        read -rp "$1" input
+        case $input in
+            y) eval "$2"=true; return 0;;
+            n) eval "$2"=false; return 0;;
+            '') return 0;; # Use default value
+            *) echo "Please enter y or n.";;
+        esac
+    done
 }
 
 function set_arg() {
   read -rp "$1" input
   case $input in
       '') ;; # Use default value
-      *) "$2"="$input"
+      *) eval "$2"="$input"
   esac
 }
 
@@ -89,54 +92,74 @@ echo "$__namestring"
 
 if ! $QUIET_MODE
 then
-    echo "Configuration: (press enter to select default)"
-    set_flag "  Force removal of any existing conda installation? [y/n] (default: n) " "FORCE_INSTALL"
-    set_arg "  Enter directory to install conda to (default: ~/.miniconda3): " "INSTALL_DIRECTORY"
-    set_arg "  Enter Python version to install (default: specified by miniconda): " "PYTHON_VERSION"
-    set_flag "  Hide '(base)' in shell prompt? [y/n] (default: n): " "HIDE_BASE"
-    set_flag "  Disable automatic activation of base environment? [y/n] (default: n): " "DISABLE_AUTO_ACTIVATE"
-    set_flag "  Run 'conda init' after installation? [y/n] (default: y): " "RUN_CONDA_INIT"
+    echo "# Configuration: (press enter to select default)"
+    set_flag "Force removal of any existing conda installation? [y/n] (default: n) " "FORCE_INSTALL"
+    set_arg "Enter directory to install conda to (default: ~/.miniconda3): " "INSTALL_DIRECTORY"
+    set_arg "Enter Python version to install (default: specified by miniconda): " "PYTHON_VERSION"
+    set_flag "Hide '(base)' in shell prompt? [y/n] (default: n): " "HIDE_BASE"
+    set_flag "Disable automatic activation of base environment? [y/n] (default: n): " "DISABLE_AUTO_ACTIVATE"
+    set_flag "Run 'conda init' after installation? [y/n] (default: y): " "RUN_CONDA_INIT"
 fi
 
+echo
 echo "Selected configuration:"
 echo "  FORCE_INSTALL=$FORCE_INSTALL"
 echo "  INSTALL_DIRECTORY=$INSTALL_DIRECTORY"
-echo "  PYTHON_VERSION=$PYTHON_VERSION"
+echo "  PYTHON_VERSION=${PYTHON_VERSION:-default}"
 echo "  HIDE_BASE=$HIDE_BASE"
 echo "  DISABLE_AUTO_ACTIVATE=$DISABLE_AUTO_ACTIVATE"
 echo "  RUN_CONDA_INIT=$RUN_CONDA_INIT"
+echo
 
-# Optionally wipe any existing install
-if $FORCE_INSTALL
+if ! $QUIET_MODE
 then
-    # If conda is installed
-    if command -v conda &> /dev/null
-    then
-        # Find it and delete it
-        OLD_CONDA_LOCATION="$(dirname "$(dirname "$(which conda)")")"
-        echo "Deleting conda install found at $OLD_CONDA_LOCATION..."
-        rm -rf "$OLD_CONDA_LOCATION"
-    fi
+  read -rp "Press enter to continue" input
 fi
 
-# Check whether the specified INSTALL_DIRECTORY exists
-if [[ -d $INSTALL_DIRECTORY ]]
-then
-    # Overwrite it if FORCE_INSTALL is true
-    if $FORCE_INSTALL
+
+function delete_conda_install() {
+    # Check if location exists 
+    if [ -d "$1" ] 
     then
-        rm -rf "$INSTALL_DIRECTORY"
-    else
+        # Check if write access to location
+        if [ -w "$1" ]
+        then
+            echo "Deleting conda install found at $1..."
+            rm -rf "$1"
+        else
+          echo "Error removing conda install at $1: permission denied."
+          exit 2
+        fi
+    fi
+    return 0
+}
+
+if $FORCE_INSTALL
+then
+    # If conda is installed, find it and delete it
+    if command -v conda &> /dev/null
+    then
+        delete_conda_install "$(dirname "$(dirname "$(which conda)")")"
+    fi
+
+    # Overwrite install directory if it already exists
+    if [ -d "$INSTALL_DIRECTORY" ]
+    then
+        delete_conda_install "$INSTALL_DIRECTORY"
+    fi
+else
+    # Check whether the specified INSTALL_DIRECTORY exists
+    if [[ -d $INSTALL_DIRECTORY ]]
+    then
         echo "Error installing to $INSTALL_DIRECTORY: directory already exists."
         exit 3
     fi
-fi
-
-# Check whether we have permission to create the specified INSTALL_DIRECTORY
-if [ ! -w "$(dirname "$INSTALL_DIRECTORY")" ]
-then
-    echo "Error installing to $INSTALL_DIRECTORY: permission denied."
-    exit 4
+    # Check whether we have permission to create the specified INSTALL_DIRECTORY
+    if [ ! -w "$(dirname "$INSTALL_DIRECTORY")" ]
+    then
+        echo "Error installing to $INSTALL_DIRECTORY: permission denied."
+        exit 2
+    fi
 fi
 
 # Check if the Python version is valid (up to three numbers separated by .)
