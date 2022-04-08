@@ -56,7 +56,7 @@ The default options will:
 | `-h`       | `--help`             | Print help message                                                                            |
 | `-q`       | `--quiet`            | Non-interactive mode - run without prompt and use defaults for any options not set with flags |
 | `-s`       | `--silent`           | Silent mode - suppress all output, and use defaults for any options not set with flags        |
-| `-d DIR`   | `--install-dir DIR`  | Install conda to the given location; it will be found at `$INSTALL_DIRECTORY/miniconda`        |
+| `-d DIR`   | `--install-dir DIR`  | Install conda to the given location; it will be found at `$DIR/miniconda`        |
 | `-p VER`   | `--python VER`       | Install the specified version of Python (default: Miniconda's default Python version)         |
 | `-B`       | `--hide-base`        | Hide `(base)` in shell prompt (for non-base environments it will still appear)                |
 |            | `--no-auto-activate` | Disable automatic activation of base environment
