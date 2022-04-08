@@ -30,7 +30,7 @@ Installation options:
      Install the specified version of Python (default: Miniconda's default Python version)
 
 Configuration options:
-  -B | --hide-base          Hide '(base)' in shell promp (for non-base environments it will still appear)
+  -B | --hide-base          Hide '(base)' in shell prompt (for non-base environments it will still appear)
   --no-auto-activate        Disable automatic activation of base environment
   --no-init                 Don't run 'conda init' after installation
 "
@@ -45,7 +45,7 @@ QUIET_MODE=false
 INSTALL_DIRECTORY="$HOME/.miniconda3"
 PYTHON_VERSION=""
 DISABLE_AUTO_ACTIVATE=false
-NO_CONDA_INIT=false
+RUN_CONDA_INIT=false
 HIDE_BASE=false
 
 # Parse arguments by iterating through array
@@ -55,17 +55,56 @@ do
         -f | --force) FORCE_INSTALL=true;;
         -g | --global) INSTALL_DIRECTORY="/opt/miniconda3";;
         -h | --help) echo "$__docstring"; exit 0;;
-        -q | --quiet) QUIET_MODE=true; exit 1;;
+        -q | --quiet) QUIET_MODE=true;;
         -s | --silent) exec &>/dev/null;;
         -d | --install-dir) shift; INSTALL_DIRECTORY="$1/miniconda3";;
         -p | --python-version) shift; PYTHON_VERSION="$1";;
         -B | --hide-base) HIDE_BASE=true;;
         --no-auto-activate) DISABLE_AUTO_ACTIVATE=true;;
-        --no-init) NO_CONDA_INIT=true;;
-        *) echo "Unexpected argument $1"; exit 2;;
+        --no-init) RUN_CONDA_INIT=false;;
+        *) echo "Unexpected argument $1"; exit 1;;
     esac
     shift
 done
+
+function set_flag() {
+    read -rp "$1" input
+    case $input in
+        y) "$2"=true; return 0;;
+        n) "$2"=false; return 0;;
+        '') ;; # Use default value
+        *) echo "Please enter y or n."; return 1;;
+    esac
+}
+
+function set_arg() {
+  read -rp "$1" input
+  case $input in
+      '') ;; # Use default value
+      *) "$2"="$input"
+  esac
+}
+
+echo "$__namestring"
+
+if ! $QUIET_MODE
+then
+    echo "Configuration: (press enter to select default)"
+    set_flag "  Force removal of any existing conda installation? [y/n] (default: n) " "FORCE_INSTALL"
+    set_arg "  Enter directory to install conda to (default: ~/.miniconda3): " "INSTALL_DIRECTORY"
+    set_arg "  Enter Python version to install (default: specified by miniconda): " "PYTHON_VERSION"
+    set_flag "  Hide '(base)' in shell prompt? [y/n] (default: n): " "HIDE_BASE"
+    set_flag "  Disable automatic activation of base environment? [y/n] (default: n): " "DISABLE_AUTO_ACTIVATE"
+    set_flag "  Run 'conda init' after installation? [y/n] (default: y): " "RUN_CONDA_INIT"
+fi
+
+echo "Selected configuration:"
+echo "  FORCE_INSTALL=$FORCE_INSTALL"
+echo "  INSTALL_DIRECTORY=$INSTALL_DIRECTORY"
+echo "  PYTHON_VERSION=$PYTHON_VERSION"
+echo "  HIDE_BASE=$HIDE_BASE"
+echo "  DISABLE_AUTO_ACTIVATE=$DISABLE_AUTO_ACTIVATE"
+echo "  RUN_CONDA_INIT=$RUN_CONDA_INIT"
 
 # Optionally wipe any existing install
 if $FORCE_INSTALL
@@ -140,10 +179,8 @@ else
 fi
 
 # Optionally run 'conda init' as the active user
-if  $NO_CONDA_INIT
+if $RUN_CONDA_INIT
 then
-  echo "Skipping 'conda init'..."
-else
     echo "Running 'conda init'..."
     if [ -z "$SUDO_USER" ]
     then
@@ -151,6 +188,8 @@ else
     else
         sudo -u "$SUDO_USER" sh -c "$INSTALL_DIRECTORY/bin/conda init"
     fi
+else
+    echo "Skipping 'conda init'..."
 fi
 
 # Optionally disable auto activation of the base environment
