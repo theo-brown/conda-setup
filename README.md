@@ -13,7 +13,7 @@
     <img src="https://img.shields.io/maintenance/yes/2022">
 </p>
 
-**conda-setup** is a shell script to help you install and configure Miniconda.
+**conda-setup** is a Bash script to help you install and configure Miniconda.
 It offers a number of configurable options:
 - Choose between global/local install
 - Set install location
